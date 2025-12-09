@@ -416,7 +416,7 @@ export default function NavigationBar() {
                 >
                   <Search style={{ height: "24px", width: "24px" }} />
                   <span className="absolute hidden md:flex items-center justify-center text-xs bg-gray-100 text-gray-800 rounded px-1.5 py-0.5 -right-12 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {navigator.platform.includes('Mac') ? '⌘K' : 'Ctrl+K'}
+                    {typeof navigator !== 'undefined' && navigator.platform.includes('Mac') ? '⌘K' : 'Ctrl+K'}
                   </span>
                 </Button>
               </DialogTrigger>
