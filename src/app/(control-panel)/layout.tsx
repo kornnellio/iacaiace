@@ -2,6 +2,9 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth/authOptions";
 import { hasControlPanelAccess } from "@/lib/auth/access-control";
 
+// Force all control panel pages to be dynamic (no static generation)
+export const dynamic = 'force-dynamic';
+
 export default async function ControlPanelGroupLayout({
   children,
 }: {
