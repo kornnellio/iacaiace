@@ -7,8 +7,8 @@
 export const AUTHORIZED_ADMIN_EMAILS = [
   "andrei@ciocoiu.net",
   "office@iacaiace.ro",
-  "filip.ilinca14@gmail.com"
-  // Add more authorized emails here
+  "filip.ilinca14@gmail.com",
+  "wdatax@gmail.com"
 ];
 
 /**
