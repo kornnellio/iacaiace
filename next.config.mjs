@@ -6,7 +6,12 @@ const nextConfig = {
             {
                 protocol: 'https',
                 hostname: 'iacaiace.ro',
-                pathname: '/uploads/**',
+                pathname: '/**',
+            },
+            {
+                protocol: 'https',
+                hostname: 'storage.googleapis.com',
+                pathname: '/**',
             },
         ],
     },
