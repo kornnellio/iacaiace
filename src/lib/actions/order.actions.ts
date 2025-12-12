@@ -605,55 +605,72 @@ async function initiateNetopiaPayment(order: OrderResponse): Promise<{ error?: s
       ? process.env.NETOPIA_SANDBOX_URL
       : process.env.NETOPIA_PRODUCTION_URL;
 
-    console.log(`Using Netopia API URL: ${apiUrl}/payment/card/start`);
+    const fullUrl = `${apiUrl}/payment/card/start`;
+    console.log(`Using Netopia API URL: ${fullUrl}`);
+    console.log(`NEXT_PUBLIC_API_URL: ${process.env.NEXT_PUBLIC_API_URL}`);
+    console.log(`NEXT_PUBLIC_APP_URL: ${process.env.NEXT_PUBLIC_APP_URL}`);
+    console.log(`NETOPIA_USE_SANDBOX: ${process.env.NETOPIA_USE_SANDBOX}`);
 
-    const response = await fetch(`${apiUrl}/payment/card/start`, {
+    const payload = {
+      config: {
+        emailTemplate: "confirm",
+        notifyUrl: `${process.env.NEXT_PUBLIC_API_URL}/api/log-request`,
+        redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/order/confirmation?orderId=${order.id}`,
+        language: "ro"
+      },
+      payment: {
+        options: {
+          installments: 1,
+          bonus: 0
+        }
+      },
+      order: {
+        posSignature: netopiaPosSignature,
+        dateTime: new Date().toISOString(),
+        description: `Order ${order.id} from iaCaiace.ro`,
+        orderID: order.id,
+        amount: order.total_price,
+        currency: "RON",
+        billing: {
+          email: order.user.email,
+          phone: "0700000000", // Default phone number for payment
+          firstName: order.address.name,
+          lastName: order.address.surname,
+          city: order.address.city,
+          country: 642, // Romania country code
+          countryName: "Romania",
+          state: order.address.county,
+          postalCode: "000000", // Default postal code for payment
+          details: order.address.address
+        }
+      }
+    };
+
+    console.log('Netopia request payload:', JSON.stringify(payload, null, 2));
+
+    const response = await fetch(fullUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': netopiaAuthToken
       },
-      body: JSON.stringify({
-        config: {
-          emailTemplate: "confirm",
-          notifyUrl: `${process.env.NEXT_PUBLIC_API_URL}/api/log-request`,
-          redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/order/confirmation?orderId=${order.id}`,
-          language: "ro"
-        },
-        payment: {
-          options: {
-            installments: 1,
-            bonus: 0
-          }
-        },
-        order: {
-          posSignature: netopiaPosSignature,
-          dateTime: new Date().toISOString(),
-          description: `Order ${order.id} from iaCaiace.ro`,
-          orderID: order.id,
-          amount: order.total_price,
-          currency: "RON",
-          billing: {
-            email: order.user.email,
-            phone: "", // We need to add phone to our order model
-            firstName: order.address.name,
-            lastName: order.address.surname,
-            city: order.address.city,
-            country: 642, // Romania country code
-            countryName: "Romania",
-            state: order.address.county,
-            postalCode: "", // We need to add postal code to our order model
-            details: order.address.address
-          }
-        }
-      })
+      body: JSON.stringify(payload)
     });
 
-    const data = await response.json();
-    console.log('Netopia payment response:', data);
+    const responseText = await response.text();
+    console.log(`Netopia response status: ${response.status} ${response.statusText}`);
+    console.log('Netopia response body:', responseText);
+
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('Failed to parse Netopia response as JSON:', parseError);
+      throw new Error(`Netopia API error: ${response.status} - Invalid JSON response: ${responseText.substring(0, 200)}`);
+    }
 
     if (!response.ok) {
-      throw new Error('Failed to initiate Netopia payment');
+      throw new Error(`Netopia API error: ${response.status} - ${JSON.stringify(data)}`);
     }
 
     // The actual redirect URL comes from the payment.paymentURL field in the response
