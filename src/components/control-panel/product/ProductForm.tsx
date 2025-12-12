@@ -747,7 +747,7 @@ const ProductForm = ({
           <Label htmlFor="shortDescription">Short Description</Label>
           <Editor
             id="shortDescription"
-            apiKey={process.env.NEXT_PUBLIC_TINYMCE_API_KEY}
+            tinymceScriptSrc="/tinymce/tinymce.min.js"
             value={formData.shortDescription}
             onEditorChange={(content) =>
               setFormData((prev) => ({
@@ -799,7 +799,7 @@ const ProductForm = ({
           <Label htmlFor="description">Full Description</Label>
           <Editor
             id="description"
-            apiKey={process.env.NEXT_PUBLIC_TINYMCE_API_KEY}
+            tinymceScriptSrc="/tinymce/tinymce.min.js"
             value={formData.description}
             onEditorChange={(content) =>
               setFormData((prev) => ({
