@@ -1,17 +1,18 @@
-// app/api/upload/route.ts
-import { writeFile, mkdir, access, constants } from "fs/promises";
 import { NextResponse } from "next/server";
-import path from "path";
 import crypto from "crypto";
 import sharp from "sharp";
+import { Storage } from "@google-cloud/storage";
 
 // Configuration
-const UPLOAD_DIR = process.env.UPLOAD_DIR || "/var/www/uploads";
-const UPLOAD_PREFIX = process.env.UPLOAD_PREFIX || "/uploads";
+const BUCKET_NAME = process.env.GCS_BUCKET_NAME || "iacaiace-uploads";
 const MAX_FILE_SIZE = 30 * 1024 * 1024; // 30MB
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_WIDTH = 1920;
 const MAX_HEIGHT = 1920;
+
+// Initialize GCS client
+// On Cloud Run, it uses the service account automatically
+const storage = new Storage();
 
 async function processImage(buffer: Buffer, type: string): Promise<Buffer> {
   try {
@@ -44,13 +45,6 @@ async function processImage(buffer: Buffer, type: string): Promise<Buffer> {
 
 export async function POST(request: Request) {
   try {
-    // Ensure upload directory exists with proper permissions
-    try {
-      await access(UPLOAD_DIR, constants.W_OK);
-    } catch (err) {
-      await mkdir(UPLOAD_DIR, { recursive: true, mode: 0o2775 });
-    }
-
     const formData = await request.formData();
     const file = formData.get("file") as File;
 
@@ -80,10 +74,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // Generate filename with original extension
-    const ext = path.extname(file.name).toLowerCase();
+    // Generate unique filename
+    const ext = file.type === "image/jpeg" ? ".jpg" : file.type === "image/png" ? ".png" : ".webp";
     const uniqueFilename = `${crypto.randomBytes(16).toString("hex")}${ext}`;
-    const filepath = path.join(UPLOAD_DIR, uniqueFilename);
 
     // Process image
     const bytes = await file.arrayBuffer();
@@ -100,20 +93,30 @@ export async function POST(request: Request) {
       );
     }
 
-    // Save file
+    // Upload to GCS
     try {
-      await writeFile(filepath, compressedBuffer, { mode: 0o664 });
+      const bucket = storage.bucket(BUCKET_NAME);
+      const blob = bucket.file(uniqueFilename);
+
+      await blob.save(compressedBuffer, {
+        contentType: file.type,
+        metadata: {
+          cacheControl: "public, max-age=31536000",
+        },
+      });
+
+      // Public URL format for GCS
+      const publicUrl = `https://storage.googleapis.com/${BUCKET_NAME}/${uniqueFilename}`;
+
       return NextResponse.json({
-        url: `${UPLOAD_PREFIX}/${uniqueFilename}`,
+        url: publicUrl,
         size: compressedBuffer.length,
         type: file.type,
       });
-    } catch (writeError) {
-      console.error("File write error:", writeError);
+    } catch (uploadError) {
+      console.error("GCS upload error:", uploadError);
       return NextResponse.json(
-        {
-          error: "Failed to save file",
-        },
+        { error: "Failed to upload file to storage" },
         { status: 500 }
       );
     }

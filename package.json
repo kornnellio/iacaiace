@@ -15,6 +15,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@fontsource/fjalla-one": "^5.1.0",
     "@fontsource/source-sans-pro": "^5.1.0",
+    "@google-cloud/storage": "^7.18.0",
     "@googlemaps/js-api-loader": "^1.16.8",
     "@hookform/resolvers": "^3.9.1",
     "@iconify/react": "^5.1.0",
