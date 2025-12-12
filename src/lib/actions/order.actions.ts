@@ -600,7 +600,14 @@ async function initiateNetopiaPayment(order: OrderResponse): Promise<{ error?: s
       throw new Error('Missing Netopia credentials in environment variables');
     }
 
-    const response = await fetch('https://secure.mobilpay.ro/pay/payment/card/start', {
+    // Use sandbox or production URL based on environment variable
+    const apiUrl = process.env.NETOPIA_USE_SANDBOX === 'true'
+      ? process.env.NETOPIA_SANDBOX_URL
+      : process.env.NETOPIA_PRODUCTION_URL;
+
+    console.log(`Using Netopia API URL: ${apiUrl}/payment/card/start`);
+
+    const response = await fetch(`${apiUrl}/payment/card/start`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -609,8 +616,8 @@ async function initiateNetopiaPayment(order: OrderResponse): Promise<{ error?: s
       body: JSON.stringify({
         config: {
           emailTemplate: "confirm",
-          notifyUrl: "https://iacaiace.ro/api/log-request",
-          redirectUrl: `https://iacaiace.ro/order/confirmation?orderId=${order.id}`,
+          notifyUrl: `${process.env.NEXT_PUBLIC_API_URL}/api/log-request`,
+          redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/order/confirmation?orderId=${order.id}`,
           language: "ro"
         },
         payment: {
